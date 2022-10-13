@@ -4,7 +4,7 @@ from flask import Flask, render_template, abort, jsonify
 from jinja2 import Markup
 
 from .db import App
-from .tasks import TASKS, Site
+from .tasks import TASKS, get_status
 
 
 app = Flask(__name__)
@@ -41,8 +41,7 @@ def app_deploy(name):
     app = App.find(name)
     if not app:
         abort(404)
-    site = Site(app.name)
-    status = site.get_status()
+    status = get_status(app)
     app.update_status(status)
     return jsonify(status)
 

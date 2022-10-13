@@ -1,4 +1,6 @@
-from core import App, CheckFailed, Validator, validator
+import requests
+
+from core import App, ValidationError, Validator, validator, get_base_url
 
 
 @validator
@@ -7,15 +9,14 @@ class check_http_status(Validator):
         self.url = url
         self.expected_status = expected_status
 
-        self.title = f"Check HTTP status: {self.url} [{self.expected_status}]"
+    def __str__(self):
+        return f"Check HTTP status: {self.url} [{self.expected_status}]"
 
-    def do_validate(self, site):
-        # NOTE: maybe this can just be a function that should return a bool
-        # value? that would be simpler than raising an exception, but would
-        # also not have custom error statements
-        r = site.get(self.url)
+    def validate(self, app):
+        url = get_base_url(app.name) + self.url
+        r = requests.get(url)
         if str(r.status_code) != str(self.expected_status):
-            raise CheckFailed(
+            raise ValidationError(
                 f"For URL {self.url}, actual status code {r.status_code} "
                 f"does not match expected status code {self.expected_status}"
             )
