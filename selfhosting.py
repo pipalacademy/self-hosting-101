@@ -25,6 +25,36 @@ class check_http_status(Validator):
             )
 
 
+@app.validator
+class check_package_exists(Validator):
+    def __init__(self, package):
+        self.package = package
+
+    def __str__(self):
+        return f"Check package exists: {self.package}"
+
+    def validate(self, app):
+        base_url = get_base_url(app.name)
+        r = requests.get(f"{base_url}/packages/{self.package}")
+        if r.status_code != 200:
+            raise ValidationError(f"Package {self.package} does not exist")
+
+
+@app.validator
+class check_file_exists(Validator):
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return f"Check file exists: {self.path}"
+
+    def validate(self, app):
+        base_url = get_base_url(app.name)
+        r = requests.get(f"{base_url}/{self.path}")
+        if r.status_code != 200:
+            raise ValidationError(f"File {self.path} does not exist")
+
+
 if __name__ == "__main__":
     import sys
 
