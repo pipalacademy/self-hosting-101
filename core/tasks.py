@@ -9,6 +9,7 @@ from typing import Dict, List, Type
 TASKS: List[Task] = []
 VALIDATORS: Dict[str, Type[Validator]] = {}
 
+# default config
 CONFIG = {
     'domain': "localhost"
 }
@@ -103,8 +104,11 @@ class Task:
     def load_from_file(cls, filename) -> List[Task]:
         """Loads a list of tasks from a file.
         """
-        data = yaml.safe_load_all(open(filename))
-        return [cls.from_dict(d) for d in data]
+        with open(filename) as f:
+            data = yaml.safe_load(f)
+
+        tasks = data["tasks"]
+        return [cls.from_dict(t) for t in tasks]
 
     @classmethod
     def from_dict(cls, data) -> Task:
@@ -147,4 +151,5 @@ def get_tasks():
 
 
 def get_base_url(app_name):
-    return f"https://{app_name}.{CONFIG['domain']}"
+    base_url_fmt = CONFIG.get("base_url", "http://{name}.{domain}")
+    return base_url_fmt.format(name=app_name, domain=CONFIG['domain'])

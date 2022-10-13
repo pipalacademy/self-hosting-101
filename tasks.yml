@@ -1,22 +1,26 @@
-name: homepage
-title: Enable the homepage.
-description: |
+config:
+  domain: "rajdhani.pipal.in"
+  base_url: "https://{name}.{domain}"
+tasks:
+  - name: homepage
+    title: Enable the homepage.
+    description: |
 
-  Your task is to enable home page on your website.
+      Your task is to enable home page on your website.
 
-  * Fork the repository https://github.com/pipalacademy/rajdhani
-  * Enable actions on your repo by visitng the Actions tab of your repo
-  * Enable the home page on your website by setting the feature flag `flag_homepage = True`
-  in the `rajdhani/config.py`.
+      * Fork the repository https://github.com/pipalacademy/rajdhani
+      * Enable actions on your repo by visitng the Actions tab of your repo
+      * Enable the home page on your website by setting the feature flag `flag_homepage = True`
+      in the `rajdhani/config.py`.
 
-  Once you commit and push your changes, your website will be updated.
-checks:
-  - check_webpage_content:
-      url: /
-      expected_text: "<h2>Search Trains</h2>"
-  - check_http_status:
-      url: /asdf
-      expected_status: 404
-  - check_http_status:
-      url: /data-explorer
-      expected_status: 200
+      Once you commit and push your changes, your website will be updated.
+    checks:
+      - check_webpage_content:
+          url: /
+          expected_text: "<h2>Search Trains</h2>"
+      - check_http_status:
+          url: /asdf
+          expected_status: 404
+      - check_http_status:
+          url: /data-explorer
+          expected_status: 200

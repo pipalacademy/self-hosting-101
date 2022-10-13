@@ -56,10 +56,4 @@ class check_file_exists(Validator):
 
 
 if __name__ == "__main__":
-    import sys
-
-    domain = sys.argv[1] if len(sys.argv) > 1 else None
-    if domain is not None:
-        app.set_config("domain", domain)
-
     app.wsgi.run()

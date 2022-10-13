@@ -1,16 +1,17 @@
 import requests
+import yaml
 
 from .tasks import CONFIG, ValidationError, Validator, validator, get_base_url
 from .app import app as wsgi
 
 
 class App:
-    def __init__(self, tasks_file, domain=None):
+    def __init__(self, tasks_file):
         self.tasks_file = tasks_file
         self.wsgi = wsgi
 
-        self.set_config("domain", domain)
-        self.set_config("tasks_file", tasks_file)
+        self.set_config("tasks_file", self.tasks_file)
+        self.load_config(self.tasks_file)
 
         # add validators
         self.validator(check_not_implemented)
@@ -18,6 +19,13 @@ class App:
 
     def set_config(self, key, value):
         CONFIG[key] = value
+
+    def load_config(self, path):
+        with open(path) as f:
+            config = yaml.safe_load(f).get("config", {})
+
+        for key, val in config.items():
+            self.set_config(key, val)
 
     def validator(self, *args, **kwargs):
         return validator(*args, **kwargs)
