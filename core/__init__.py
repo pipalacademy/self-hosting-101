@@ -1,14 +1,7 @@
 import requests
 
-from .tasks import CONFIG, TASKS, ValidationError, Task, Validator, add_task, validator, get_base_url
+from .tasks import CONFIG, ValidationError, Validator, validator, get_base_url
 from .app import app as wsgi
-
-
-__all__ = [
-    "App",
-    "Validator",
-    "ValidationError"
-]
 
 
 class App:
@@ -17,26 +10,19 @@ class App:
         self.wsgi = wsgi
 
         self.set_config("domain", domain)
+        self.set_config("tasks_file", tasks_file)
 
         # add validators
         self.validator(check_not_implemented)
         self.validator(check_webpage_content)
 
-        self.load_tasks()
-
     def set_config(self, key, value):
         CONFIG[key] = value
-
-    def load_tasks(self):
-        for task in Task.load_from_file(self.tasks_file):
-            add_task(task)
 
     def validator(self, *args, **kwargs):
         return validator(*args, **kwargs)
 
     def verify(self, app):
-        if not TASKS:
-            self.load_tasks()
         return app.verify()
 
 

@@ -4,7 +4,7 @@ from flask import Flask, render_template, abort, jsonify
 from jinja2 import Markup
 
 from .db import App
-from .tasks import TASKS, get_status
+from .tasks import get_tasks, get_status
 
 
 app = Flask(__name__)
@@ -33,7 +33,7 @@ def app_page(name):
     app = App.find(name)
     if not app:
         abort(404)
-    return render_template("app.html", app=app, tasks=TASKS)
+    return render_template("app.html", app=app, tasks=get_tasks())
 
 
 @app.route("/<name>/deploy", methods=["POST"])

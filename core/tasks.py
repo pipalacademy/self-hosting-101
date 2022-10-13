@@ -18,7 +18,7 @@ def get_status(learner_app):
     """Runs the tests for each task and returns the status for each task.
     """
     tasks = {}
-    for task in TASKS:
+    for task in get_tasks():
         task_status = task.verify(learner_app)
         tasks[task.name] = asdict(task_status)
         if task_status.status != TaskStatus.PASS:
@@ -130,6 +130,20 @@ class Task:
 
 def add_task(t: Task):
     TASKS.append(t)
+
+
+def load_tasks():
+    tasks_file = CONFIG['tasks_file']
+    tasks = Task.load_from_file(tasks_file)
+    for task in tasks:
+        add_task(task)
+
+
+def get_tasks():
+    if not TASKS:
+        load_tasks()
+
+    return TASKS
 
 
 def get_base_url(app_name):

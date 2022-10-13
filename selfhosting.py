@@ -1,9 +1,12 @@
 import requests
 
-from core import App, ValidationError, Validator, validator, get_base_url
+from core import App, ValidationError, Validator, get_base_url
 
 
-@validator
+app = App("tasks.yml")
+
+
+@app.validator
 class check_http_status(Validator):
     def __init__(self, url, expected_status):
         self.url = url
@@ -20,9 +23,6 @@ class check_http_status(Validator):
                 f"For URL {self.url}, actual status code {r.status_code} "
                 f"does not match expected status code {self.expected_status}"
             )
-
-
-app = App("tasks.yml")
 
 
 if __name__ == "__main__":
