@@ -36,6 +36,8 @@ class check_package_exists(Validator):
     def validate(self, app):
         base_url = get_base_url(app.name)
         r = requests.get(f"{base_url}/packages/{self.package}")
+        print("status: ", r.status_code)
+        print(r.json())
         if r.status_code != 200:
             raise ValidationError(f"Package {self.package} does not exist")
 
@@ -53,6 +55,24 @@ class check_file_exists(Validator):
         r = requests.get(f"{base_url}/{self.path}")
         if r.status_code != 200:
             raise ValidationError(f"File {self.path} does not exist")
+
+
+@app.validator
+class check_user_exists(Validator):
+    def __init__(self, user):
+        self.user = user
+
+    def __str__(self):
+        return f"Check user exists: {self.user}"
+
+    def validate(self, app):
+        base_url = get_base_url(app.name)
+        r = requests.get(f"{base_url}/users")
+        r.raise_for_status()
+
+        users = r.json()["data"]["users"]
+        if self.user not in users:
+            raise ValidationError(f"User {self.user} does not exist")
 
 
 if __name__ == "__main__":
