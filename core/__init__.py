@@ -118,6 +118,8 @@ class App:
         return {
             "datestr": web.datestr,
             "markdown_to_html": self._markdown_to_html,
+            "title": self.config.get("title", "Treadmill Dashboard"),
+            "subtitle": self.config.get("subtitle", ""),
         }
 
     def _markdown_to_html(self, md):
