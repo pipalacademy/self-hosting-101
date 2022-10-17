@@ -10,6 +10,7 @@ class App:
     def __init__(self, row):
         self.id = row.id
         self.name = row.name
+        self.base_url = row.base_url
         self.current_task = row.current_task
         self.score = row.score
         self.created = self.parse_timestamp(row.created)
@@ -28,6 +29,13 @@ class App:
         row = db.where("app", name=name).first()
         if row:
             return cls(row)
+
+    @classmethod
+    def create(cls, name, base_url, current_task, score=0):
+        id = db.insert("app", name=name, base_url=base_url,
+                       current_task=current_task, score=score)
+        row = db.select("app", where="id=$id", vars={"id": id}).first()
+        return cls(row)
 
     def is_task_done(self, task_name):
         rows = db.where("task", app_id=self.id, name=task_name)
@@ -89,12 +97,3 @@ class App:
                 name=name,
                 status=status,
                 checks=checks)
-
-def main():
-    import sys
-    app_name = sys.argv[1]
-    db.insert("app", name=app_name, score=0, current_task="homepage")
-    print("Created new app", app_name)
-
-if __name__ == "__main__":
-    main()

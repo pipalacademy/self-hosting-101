@@ -1,6 +1,7 @@
 create table app (
     id integer primary key,
     name text unique,
+    base_url text unique,
     current_task text,
     score int,
     healthy int default 1,
