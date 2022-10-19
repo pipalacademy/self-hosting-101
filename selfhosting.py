@@ -15,8 +15,8 @@ class check_http_status(Validator):
     def __str__(self):
         return f"Check HTTP status: {self.url} [{self.expected_status}]"
 
-    def validate(self, learner_app):
-        url = learner_app.base_url + self.url
+    def validate(self, site):
+        url = site.base_url + self.url
         r = requests.get(url)
         if str(r.status_code) != str(self.expected_status):
             raise ValidationError(
@@ -81,20 +81,19 @@ if __name__ == "__main__":
         app.wsgi.run(debug=True)
 
     elif cmd == "new":
-        app_name = sys.argv[2]
-        learner_app = app.new_app(app_name)
-        print(f"App created: {learner_app.base_url}")
+        site_name = sys.argv[2]
+        site = app.new_site(site_name)
+        print(f"App created: {site.base_url}")
 
     elif cmd == "check":
-        app_name = sys.argv[2]
-        from core import LearnerApp
-        learner_app = LearnerApp.find(app_name)
-        if not learner_app:
-            print(f"App not found: {app_name}")
+        site_name = sys.argv[2]
+        site = app.get_site(site_name)
+        if not site:
+            print(f"Site not found: {site_name}")
             sys.exit(1)
-        status = app.get_status(learner_app)
+        status = app.get_status(site)
         print(status)
-        learner_app.update_status(status)
+        site.update_status(status)
 
     else:
         print("invalid command: ", cmd)

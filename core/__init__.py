@@ -8,7 +8,7 @@ import yaml
 from flask import Flask, abort, jsonify, render_template
 from jinja2 import Markup
 
-from .db import App as LearnerApp
+from .db import Site
 from .tasks import TaskParser, TaskStatus, ValidationError, Validator
 
 
@@ -16,13 +16,15 @@ class App:
     def __init__(self, tasks_file):
         self.tasks_file = tasks_file
 
-        self.config = {}
+        props = self.load_properties(self.tasks_file)
+        self.title = props["title"]
+        self.subtitle = props.get("subtitle", "")
+
+        self.config = self.load_config(self.tasks_file)
         self._validators = {}
         self._tasks = None  # hidden because we want to lazy-load with get_tasks()
 
         self.wsgi = Flask(self.config.get("name", __name__))
-
-        self.load_config(self.tasks_file)
 
         # validators
         self.validator(check_not_implemented)
@@ -31,8 +33,8 @@ class App:
         # routes/context for Flask app
         self.wsgi.context_processor(self._update_context)
         self.wsgi.add_url_rule("/", view_func=self._index)
-        self.wsgi.add_url_rule("/<name>", view_func=self._app_page)
-        self.wsgi.add_url_rule("/<name>/refresh", view_func=self._app_refresh)
+        self.wsgi.add_url_rule("/<name>", view_func=self._site_page)
+        self.wsgi.add_url_rule("/<name>/refresh", view_func=self._site_refresh)
 
     def validator(self, klass: Type[Validator]):
         """Class decorator to add a class as a Validator
@@ -47,12 +49,21 @@ class App:
         with open(path) as f:
             config = yaml.safe_load(f).get("config", {})
 
-        for key, val in config.items():
-            self.set_config(key, val)
+        return config
+
+    def load_properties(self, path):
+        with open(path) as f:
+            props = yaml.safe_load(f)
+
+        # discard keys tasks and config if they exist
+        props.pop("tasks", None)
+        props.pop("config", None)
+
+        return props
 
     def get_tasks(self):
-        if not self._tasks:
-            self.load_tasks()
+        if self._tasks is None:
+            self._tasks = self.load_tasks()
 
         return self._tasks
 
@@ -60,15 +71,15 @@ class App:
         """Loads a list of tasks from a file.
         """
         parser = TaskParser(self.tasks_file, self._validators)
-        self._tasks = parser.load_from_file(self.tasks_file)
+        return parser.load_from_file(self.tasks_file)
 
-    def get_status(self, learner_app):
-        """Get status of app by running all validators
+    def get_status(self, site):
+        """Get status of site by running all validators
 
         Return value is a dict with keys:
         {tasks: List[TaskStatus], current_task: str}
         """
-        evaluator = Evaluator(learner_app, config=self.config)
+        evaluator = Evaluator(site, config=self.config)
 
         tasks = {}
         for task in self.get_tasks():
@@ -79,47 +90,59 @@ class App:
 
         return dict(tasks=tasks, current_task=task.name)
 
-    def new_app(self, name):
-        """Create a new app
+    def _get_base_url(self, site_name):
+        """Get base URL for a site from its name
         """
-        base_url = self._get_base_url(name)
-        current_task = self.get_tasks()[0].name
-        app = LearnerApp.create(name=name, base_url=base_url,
-                                current_task=current_task)
-        return app
+        return self.config["base_url"].format(name=site_name)
 
-    def _get_base_url(self, app_name):
-        """Get base URL for a learner app from its name
+    def _patch_site(self, site):
+        """Any post-processing for a site, after it is fetched from DB
         """
-        return self.config.get("base_url").format(name=app_name)
+        site.base_url = self._get_base_url(site.name)
+        return site
+
+    def new_site(self, name):
+        """Create a new site
+        """
+        current_task = self.get_tasks()[0]
+        site = Site.create(name, current_task=current_task.name)
+        return self._patch_site(site)
+
+    def get_all_sites(self):
+        sites = Site.find_all()
+        return [self._patch_site(site) for site in sites]
+
+    def get_site(self, *args, **kwargs):
+        site = Site.find(*args, **kwargs)
+        return site and self._patch_site(site)
 
     # view functions
     def _index(self):
-        apps = LearnerApp.find_all()
-        return render_template("index.html", apps=apps)
+        sites = self.get_all_sites()
+        return render_template("index.html", apps=sites)
 
-    def _app_page(self, name):
-        app = LearnerApp.find(name)
-        if not app:
+    def _site_page(self, name):
+        site = self.get_site(name)
+        if not site:
             abort(404)
-        return render_template("app.html", app=app, tasks=self.get_tasks())
+        return render_template("app.html", app=site, tasks=self.get_tasks())
 
-    def _app_refresh(self, name):
-        """Refresh status of app (re-run deployment or checks)
+    def _site_refresh(self, name):
+        """Refresh status of site (re-run deployment or checks)
         """
-        app = LearnerApp.find(name)
-        if not app:
+        site = self.get_site(name)
+        if not site:
             abort(404)
-        status = self.get_status(app)
-        app.update_status(status)
+        status = self.get_status(site)
+        site.update_status(status)
         return jsonify(status)
 
     def _update_context(self):
         return {
             "datestr": web.datestr,
             "markdown_to_html": self._markdown_to_html,
-            "title": self.config.get("title", "Treadmill Dashboard"),
-            "subtitle": self.config.get("subtitle", ""),
+            "title": self.title,
+            "subtitle": self.subtitle,
         }
 
     def _markdown_to_html(self, md):
@@ -127,16 +150,16 @@ class App:
 
 
 class Evaluator:
-    def __init__(self, learner_app: LearnerApp, config: Dict[str, Any]):
-        self.learner_app = learner_app
+    def __init__(self, site: Site, config: Dict[str, Any]):
+        self.site = site
         self.config = config
 
     def evaluate_task(self, task) -> TaskStatus:
-        """Evaluate a single task for a learner app
+        """Evaluate a single task for a site
         """
-        print(f"[{self.learner_app.base_url}] evaluating task {task.name}...")
+        print(f"[{self.site.base_url}] evaluating task {task.name}...")
 
-        results = [c.verify(self.learner_app) for c in task.checks]
+        results = [c.verify(self.site) for c in task.checks]
         print(results)
         if all(c.status == TaskStatus.PASS for c in results):
             status = TaskStatus.PASS
@@ -152,7 +175,7 @@ class check_not_implemented(Validator):
     def __str__(self):
         return "Checks are not yet implemented for this task"
 
-    def validate(self, app):
+    def validate(self, site):
         raise ValidationError("coming soon...")
 
 
@@ -164,8 +187,8 @@ class check_webpage_content(Validator):
     def __str__(self):
         return f"Check webpage content: {self.url}"
 
-    def validate(self, app):
-        base_url = app.base_url
+    def validate(self, site):
+        base_url = site.base_url
         url = f"{base_url}{self.url}"
         if self.expected_text not in requests.get(url).text:
             message = f'Text "{self.expected_text}"\nis expected in the web page {url},\nbut it is not found.'

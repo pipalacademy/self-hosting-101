@@ -1,7 +1,6 @@
-create table app (
+create table site (
     id integer primary key,
     name text unique,
-    base_url text unique,
     current_task text,
     score int,
     healthy int default 1,
@@ -9,20 +8,16 @@ create table app (
     last_updated text default CURRENT_TIMESTAMP
 );
 
--- the completed_tasks table maintains the list of tasks that are
--- completed for each app. When a completed task is broken due to
--- a subsequent change, it is marked as broken.
 create table task (
     id integer primary key,
-    app_id integer references app(id),
+    site_id integer references site(id),
     name text,
     status text, -- completed, broken, pending
     checks text,
     timestamp text default CURRENT_TIMESTAMP
 );
 
-
--- changelog maintains all the changes to an app
+-- changelog maintains all the changes to an site
 -- entries could be one of the following types
 --   deployed
 --   task-done
@@ -31,7 +26,7 @@ create table task (
 --   tasks-broken
 create table changelog (
     id integer primary key,
-    app_id integer references app(id),
+    site_id integer references site(id),
     timestamp text default CURRENT_TIMESTAMP,
     type text,
     message text

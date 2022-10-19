@@ -28,17 +28,25 @@ class ValidationError(Exception):
 
 
 class Validator:
-    def verify(self, app):
+    """Base class for all validators.
+
+    `verify` is the method that is called internally to get a `CheckStatus`
+    object. This shouldn't normally be overwritten by subclasses.
+
+    `validate` method has the logic for the actual validation. It should
+    raise a `ValidationError` if the validation fails.
+    """
+    def verify(self, site):
         status = CheckStatus(str(self))
         try:
-            self.validate(app)
+            self.validate(site)
             return status
         except ValidationError as e:
             return status.fail(str(e))
         except Exception as e:
             return status.error(str(e))
 
-    def validate(self, app):
+    def validate(self, site):
         raise NotImplementedError()
 
 

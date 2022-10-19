@@ -1,7 +1,7 @@
+title: Self Hosting 101
+subtitle: Learn to self-host
 config:
   base_url: "http://{name}.example.com"
-  title: Self Hosting 101
-  subtitle: Learn to self-host
 tasks:
   - name: nginx
     title: Install nginx
