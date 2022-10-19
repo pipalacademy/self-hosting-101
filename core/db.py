@@ -2,7 +2,10 @@ import web
 import json
 import datetime
 
-db_uri = "sqlite:///treadmill.db"
+from . import config
+
+
+db_uri = config.db_uri
 db = web.database(db_uri)
 
 
