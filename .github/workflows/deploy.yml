@@ -1,0 +1,15 @@
+name: deploy
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Hamr
+        run: |
+          curl -f -X POST https://hamr.self-hosting-101.pipal.in/apps/self-hosting-101/sync
