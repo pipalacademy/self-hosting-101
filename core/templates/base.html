@@ -13,6 +13,35 @@
   </head>
 
   <body>
+    {% block navbar %}
+    <!-- simple navbar with logo, link to "Leaderboard" (i.e. homepage), and a Login/Logout button on the right corner -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+          <strong>{{ title }}</strong>
+        </a>
+
+        <div class="navbar-collapse">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link me-auto" href="/">Leaderboard</a>
+            </li>
+            {% if user %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('_logout') }}">Logout</a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('_github_initiate') }}">Login</a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+
+      </div>
+    </nav>
+    {% endblock %}
+
     {% block page %}
     <div class="container" id="page">
       {% block content %}

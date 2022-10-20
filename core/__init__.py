@@ -203,6 +203,7 @@ class App:
             "markdown_to_html": self._markdown_to_html,
             "title": self.title,
             "subtitle": self.subtitle,
+            "user": get_logged_in_user(),
         }
 
     def _markdown_to_html(self, md):
