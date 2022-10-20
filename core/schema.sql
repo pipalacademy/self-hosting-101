@@ -31,3 +31,9 @@ create table changelog (
     type text,
     message text
 );
+
+create table user (
+    id integer primary key,
+    username text unique not null,
+    ip_address text
+);

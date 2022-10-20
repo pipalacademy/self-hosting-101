@@ -101,3 +101,33 @@ class Site:
                 name=name,
                 status=status,
                 checks=checks)
+
+
+class User:
+    def __init__(self, row):
+        self.id = row.id
+        self.username = row.username
+        self.ip_address = row.ip_address
+
+    @classmethod
+    def find_all(cls):
+        rows = db.select("user")
+        return [cls(row) for row in rows]
+
+    @classmethod
+    def find(cls, **kwargs):
+        row = db.where("user", **kwargs).first()
+        if row:
+            return cls(row)
+
+    @classmethod
+    def create(cls, **kwargs):
+        id = db.insert("user", **kwargs)
+        row = db.select("user", where="id=$id", vars={"id": id}).first()
+        return cls(row)
+
+    def update_ip_address(self, ip_address):
+        # TODO: set DNS entry in digitalocean
+        self.ip_address = ip_address
+        db.update("user", ip_address=self.ip_address,
+                  where="id=$id", vars={"id": self.id})

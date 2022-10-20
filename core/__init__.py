@@ -5,10 +5,12 @@ import markdown
 import requests
 import web
 import yaml
-from flask import Flask, abort, jsonify, render_template
+from flask import Flask, abort, jsonify, redirect, request, render_template, session, url_for
 from jinja2 import Markup
 
-from .db import Site
+from . import config as core_config
+from .auth import Github, login_user, get_logged_in_user, logout_user
+from .db import Site, User
 from .tasks import TaskParser, TaskStatus, ValidationError, Validator
 
 
@@ -19,22 +21,38 @@ class App:
         props = self.load_properties(self.tasks_file)
         self.title = props["title"]
         self.subtitle = props.get("subtitle", "")
+        self.name = props.get("name", __name__)
 
         self.config = self.load_config(self.tasks_file)
         self._validators = {}
         self._tasks = None  # hidden because we want to lazy-load with get_tasks()
 
-        self.wsgi = Flask(self.config.get("name", __name__))
+        self.wsgi = Flask(self.name)
+        self.wsgi.config.update(core_config.wsgi_config)
 
         # validators
         self.validator(check_not_implemented)
         self.validator(check_webpage_content)
 
         # routes/context for Flask app
+
         self.wsgi.context_processor(self._update_context)
+
         self.wsgi.add_url_rule("/", view_func=self._index)
         self.wsgi.add_url_rule("/<name>", view_func=self._site_page)
         self.wsgi.add_url_rule("/<name>/refresh", view_func=self._site_refresh)
+
+        self.wsgi.add_url_rule("/auth/github/initiate", view_func=self._github_initiate)
+        self.wsgi.add_url_rule("/auth/github/callback", view_func=self._github_callback)
+        self.wsgi.add_url_rule("/auth/me", view_func=self._verify_auth)
+        self.wsgi.add_url_rule("/auth/logout", view_func=self._logout)
+
+        with self.wsgi.app_context():
+            self.github = Github(
+                client_id=core_config.github_client_id,
+                client_secret=core_config.github_client_secret,
+                redirect_uri=url_for("_github_callback", _external=True)
+            )
 
     def validator(self, klass: Type[Validator]):
         """Class decorator to add a class as a Validator
@@ -136,6 +154,47 @@ class App:
         status = self.get_status(site)
         site.update_status(status)
         return jsonify(status)
+
+    def _github_initiate(self):
+        """Initiate github oauth flow
+        """
+        url = self.github.get_oauth_url()
+        return redirect(url)
+
+    def _github_callback(self):
+        """Callback for github oauth flow
+        """
+        code = request.args.get("code")
+        if not code:
+            abort(400)
+
+        token = self.github.get_access_token(code)
+        username = self.github.get_username(token)
+
+        user = User.find(username=username) or User.create(username=username)
+        self._update_ip_address(user)
+        login_user(user)
+        return redirect("/")
+
+    def _verify_auth(self):
+        """Verify that user is logged in
+        """
+        user = get_logged_in_user()
+        if not user:
+            abort(401)
+        return jsonify(
+            username=user.username,
+            ip_address=user.ip_address,
+        )
+
+    def _logout(self):
+        logout_user()
+        return redirect("/")
+
+    def _update_ip_address(self, user):
+        if "ip_address" in session:
+            ip_addr = session.pop("ip_address")
+            user.update_ip_address(ip_addr)
 
     def _update_context(self):
         return {
