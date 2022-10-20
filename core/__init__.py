@@ -28,7 +28,8 @@ class App:
         self._tasks = None  # hidden because we want to lazy-load with get_tasks()
 
         self.wsgi = Flask(self.name)
-        self.wsgi.config.update(core_config.wsgi_config)
+        self.wsgi.config.update(core_config.wsgi_defaults)
+        self.wsgi.config.from_prefixed_env()
 
         # validators
         self.validator(check_not_implemented)
