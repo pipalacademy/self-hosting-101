@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block page %}
+<section class="hero is-warning is-medium">
+  <div class="hero-body">
+    <p class="title">Self Hosting 101</p>
+    <p class="subtitle">Learn to self-host your applications on your own server.</p>
+    <p>Guided learning journey with carefully crafted byte-sized tasks with live feedback.</p>
+    <br>
+    <p>
+      <button class="button is-dark">Sign up to get started!</button>
+    </p>
+  </div>
+</section>
+
+<div class="container mt-5">
+
+  <h2 class="title is-2">Outline</h2>
+
+<div class="columns">
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <p class="title is-4">Create a Droplet</p>
+
+        <div class="content">
+          Create a droplet and install self-hosting-agent to track your progress.
+          <br><br>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <p class="title is-4">Deploy a static website</p>
+
+        <div class="content">
+          Learn how to configure nginx webserver to deploy simple static websites.
+          <br><br>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <p class="title is-4">Deploy a python webapp</p>
+
+        <div class="content">
+          Learn how to configure deploy a python webapp running as a service and configure it to run behind nginx.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+{% endblock %}

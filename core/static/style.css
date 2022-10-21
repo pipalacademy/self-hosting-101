@@ -24,3 +24,11 @@ nav {
     background: #eee;
     border: 1px solid #ddd;
 }
+
+
+.navbar-item {
+    font-size: 1.125rem;
+}
+.navbar-brand {
+    font-weight: bold;
+}
