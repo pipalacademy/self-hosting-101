@@ -41,5 +41,5 @@ create table changelog (
 
 create table user (
     id integer primary key,
-    username text unique not null,
+    username text unique not null
 );
