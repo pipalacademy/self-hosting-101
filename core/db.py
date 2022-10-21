@@ -41,6 +41,22 @@ class Site:
         row = db.select("site", where="id=$id", vars={"id": id}).first()
         return cls(row)
 
+    def set_userdata(self, key, value):
+        if self.get_userdata(key):
+            db.update("site_userdata",
+                      value=value,
+                      where="site_id=$self.id and key=$key",
+                      vars=locals())
+        else:
+            db.insert("site_userdata",
+                      site_id=self.id,
+                      key=key,
+                      value=value)
+
+    def get_userdata(self, key):
+        row = db.where("site_userdata", site_id=self.id, key=key).first()
+        return row and row.value
+
     def is_task_done(self, task_name):
         rows = db.where("task", site_id=self.id, name=task_name)
         return bool(rows)

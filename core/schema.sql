@@ -8,6 +8,13 @@ create table site (
     last_updated text default CURRENT_TIMESTAMP
 );
 
+create table site_userdata (
+    id integer primary key,
+    site_id references site (id),
+    key text,
+    value text
+);
+
 create table task (
     id integer primary key,
     site_id integer references site(id),
@@ -35,5 +42,4 @@ create table changelog (
 create table user (
     id integer primary key,
     username text unique not null,
-    ip_address text
 );

@@ -9,7 +9,4 @@ db_uri = f"sqlite:///{db_path}"
 github_client_id = os.environ.get("GITHUB_CLIENT_ID", "")
 github_client_secret = os.environ.get("GITHUB_CLIENT_SECRET", "")
 
-wsgi_defaults = {
-    "SECRET_KEY": "development",
-    "SERVER_NAME": "localhost:5000",
-}
+secret_key = "development"
