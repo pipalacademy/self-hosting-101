@@ -54,12 +54,6 @@ nav {
     width: 100%;
 }
 
-div.is-check {
-    background: inherit;
-    padding: 20px;
-    border: 1px solid #eee;
-}
-
 div.is-check pre {
     background: inherit;
     padding-left: 5px;
