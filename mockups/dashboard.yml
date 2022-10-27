@@ -1,1 +1,35 @@
 title: Self Hosting 101
+current_user:
+  username: alice
+progress: 15 # percentage
+tasks:
+  - name: new-droplet
+    title: Create a Droplet
+    description: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus nec iaculis mauris.
+    status: pass
+    checks: 
+      - title: "Check package exists: nginx"
+        status: pass
+        message:
+  - name: agent
+    title: Install self-hosting-agent
+    description: |
+      Install self-hosting agent using the instructions below.
+
+      TODO: add instructions
+    status: fail
+    checks:
+      - title: "Check package exists: self-hosting-agent"
+        status: fail
+        message: Package self-hosting-agent does not exist
+  - name: agent-2
+    title: Install self-hosting-agent (2)
+    description: |
+      Install self-hosting agent using the instructions below.
+
+      TODO: add instructions
+    status: current
+    checks:
+      - title: "Check package exists: self-hosting-agent"
+        status: fail
+        message: Package self-hosting-agent does not exist

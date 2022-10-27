@@ -7,6 +7,6 @@ $(document).ready(function() {
   });
 
   $("[data-toggle='collapse']").click(function() {
-      $(this).closest(".is-collapsible").toggleClass("is-collapsed");
+      $(this).closest(".is-collapsible").toggleClass("is-active");
   })
 });
