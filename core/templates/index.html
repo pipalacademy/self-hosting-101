@@ -1,40 +1,51 @@
 {% extends "base.html" %}
 
-{% block page %}
-<div class="px-4 py-5 my-5 text-center" id="home-hero">
-    <!-- <img class="d-block mx-auto mb-4" src="/docs/5.0/assets/brand/bootstrap-logo.svg" alt="" width="72" height="57"> -->
-    <h1 class="display-5 fw-bold">{{ title if title else "Treadmill" }}</h1>
-    <div class="col-lg-6 mx-auto">
-      <p class="lead mb-4">
-          {{ subtitle if subtitle }}
-      </p>
-      <!-- <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-        <button type="button" class="btn btn-primary btn-lg px-4 gap-3">Primary button</button>
-        <button type="button" class="btn btn-outline-secondary btn-lg px-4">Secondary</button>
-      </div> -->
+{% macro Card(title, description) %}
+    <div class="card">
+      <div class="card-content">
+        <p class="title is-4">{{ title }}</p>
+
+        <div class="content">
+          {{ description }}
+          <br><br>
+        </div>
+      </div>
     </div>
+{% endmacro %}
+
+{% block page %}
+<section class="hero is-warning is-medium">
+  <div class="hero-body">
+    <p class="title">Self Hosting 101</p>
+    <p class="subtitle">Learn to self-host your applications on your own server.</p>
+    <p>Guided learning journey with carefully crafted byte-sized tasks with live feedback.</p>
+    <br>
+    <p>
+      <a class="button is-dark" href="/login">Sign up to get started!</a>
+    </p>
+  </div>
+</section>
+
+<div class="container mt-5">
+
+  <h2 class="title is-2">Outline</h2>
+
+<div class="columns">
+  <div class="column">
+    {{ Card(title="Create a Droplet",
+            description="Create a droplet and install self-hosting-agent to track your progress.") }}
+  </div>
+  <div class="column">
+    {{ Card(title="Deploy a static website",
+            description="Learn how to configure nginx webserver to deploy simple static websites.") }}
+  </div>
+  <div class="column">
+    {{ Card(title="Deploy a python webapp",
+            description="Learn how to configure deploy a python webapp running as a service and configure it to run behind nginx.") }}
+    </div>
+  </div>
 </div>
 
-<div id="leader-board" class="container">
-  <h2 class="text-center2">Leader Board</h2>
 
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Tasks Completed</th>
-        <th>Last Updated</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for app in apps %}
-      <tr>
-        <td><a href="/{{app.name}}">{{app.name}}</a></td>
-        <td>{{app.score}}</td>
-        <td>{{datestr(app.last_updated)}}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 {% endblock %}
