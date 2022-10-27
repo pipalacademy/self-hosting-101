@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 import markdown
 import web
 from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
@@ -17,6 +19,7 @@ def get_github():
     return Github(config.github_client_id, config.github_client_secret, redirect_uri)
 
 
+@app.template_filter()
 def markdown_to_html(md):
     return Markup(markdown.markdown(md))
 
@@ -25,10 +28,9 @@ def markdown_to_html(md):
 def update_context():
     return {
         "datestr": web.datestr,
-        "markdown_to_html": markdown_to_html,
         "title": g.treadmill.title,
         "subtitle": g.treadmill.subtitle,
-        "user": get_logged_in_user(),
+        "current_user": get_logged_in_user(),
     }
 
 
@@ -40,6 +42,12 @@ def index():
 
 @app.route("/site")
 def site_page():
+    """Renders site/dashboard page.
+
+    `tasks` given to the template is a list of dict.
+
+    task.status can be either of "pass", "fail", "current", "locked".
+    """
     user = get_logged_in_user()
     if user is None:
         abort(401)
@@ -47,7 +55,26 @@ def site_page():
     site = g.treadmill.get_site(user.username)
     if not site:
         abort(404)
-    return render_template("app.html", app=site, tasks=g.treadmill.get_tasks())
+
+    raw_tasks = g.treadmill.get_tasks()
+    tasks = []
+
+    for raw_task in raw_tasks:
+        task = asdict(raw_task)
+        task_status = site.get_task_status(task["name"])
+        task["status"] = task_status.status if task_status else "locked"
+        task["checks"] = task_status.checks if task_status else []
+
+        if task["name"] == site.current_task:
+            task["status"] = "current"
+
+        tasks.append(task)
+
+    return render_template(
+        "dashboard.html",
+        tasks=tasks,
+        progress=get_progress(tasks),
+    )
 
 
 @app.route("/site/<name>/refresh", methods=["POST"])
@@ -106,3 +133,8 @@ def verify_auth():
 def logout():
     logout_user()
     return redirect("/")
+
+
+def get_progress(tasks):
+    passed_tasks = sum(1 for task in tasks if task["status"] == "pass")
+    return round(passed_tasks * 100 / len(tasks))
