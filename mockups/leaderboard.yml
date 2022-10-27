@@ -1,0 +1,8 @@
+title: Self Hosting 101
+sites:
+  - name: alice
+    score: 5
+    last_updated: 2022-10-27 13:14:44
+  - name: bob
+    score: 10
+    last_updated: 2022-10-27 13:14:44
