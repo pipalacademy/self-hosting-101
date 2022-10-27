@@ -19,8 +19,8 @@ create table task (
     id integer primary key,
     site_id integer references site(id),
     name text,
-    status text, -- completed, broken, pending
-    checks text,
+    status text, -- pass, fail
+    checks text, -- json
     timestamp text default CURRENT_TIMESTAMP
 );
 
