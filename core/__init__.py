@@ -76,7 +76,7 @@ class Treadmill:
         """Get status of site by running all validators
 
         Return value is a dict with keys:
-        {tasks: List[TaskStatus], current_task: str}
+        {tasks: Dict[str, TaskStatus], current_task: str}
         """
         evaluator = Evaluator(site, config=self.config)
 
