@@ -1,3 +1,4 @@
+import functools
 from dataclasses import asdict
 
 import markdown
@@ -19,9 +20,23 @@ def get_github():
     return Github(config.github_client_id, config.github_client_secret, redirect_uri)
 
 
+def auth_required(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if not g.user:
+            return redirect(url_for("login"))
+        return func(*args, **kwargs)
+    return wrapper
+
+
 @app.template_filter()
 def markdown_to_html(md):
     return Markup(markdown.markdown(md))
+
+
+@app.before_request
+def before_request():
+    g.user = get_logged_in_user()
 
 
 @app.context_processor
@@ -30,29 +45,34 @@ def update_context():
         "datestr": web.datestr,
         "title": g.treadmill.title,
         "subtitle": g.treadmill.subtitle,
-        "current_user": get_logged_in_user(),
+        "current_user": g.user,
     }
 
 
 @app.route("/")
 def index():
+    if get_logged_in_user():
+        return redirect(url_for("dashboard"))
+
+    return render_template("index.html")
+
+
+@app.route("/leaderboard")
+def leaderboard():
     sites = g.treadmill.get_all_sites()
-    return render_template("index.html", apps=sites)
+    return render_template("leaderboard.html", sites=sites)
 
 
-@app.route("/site")
-def site_page():
-    """Renders site/dashboard page.
+@app.route("/dashboard")
+@auth_required
+def dashboard():
+    """Renders dashboard (site page).
 
     `tasks` given to the template is a list of dict.
 
     task.status can be either of "pass", "fail", "current", "locked".
     """
-    user = get_logged_in_user()
-    if user is None:
-        abort(401)
-
-    site = g.treadmill.get_site(user.username)
+    site = g.treadmill.get_site(g.user.username)
     if not site:
         abort(404)
 
@@ -114,18 +134,16 @@ def github_callback():
 
     g.treadmill.get_site(user.username) or g.treadmill.new_site(user.username)
 
-    return redirect("/site")
+    return redirect(url_for("index"))
 
 
 @app.route("/account/me")
+@auth_required
 def verify_auth():
     """Verify that user is logged in
     """
-    user = get_logged_in_user()
-    if not user:
-        abort(401)
     return jsonify(
-        username=user.username,
+        username=g.user.username,
     )
 
 
@@ -135,6 +153,7 @@ def login():
 
 
 @app.route("/logout")
+@auth_required
 def logout():
     logout_user()
     return redirect("/")
