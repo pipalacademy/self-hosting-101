@@ -33,3 +33,6 @@ tasks:
       - title: "Check package exists: self-hosting-agent"
         status: fail
         message: Package self-hosting-agent does not exist
+  - name: locked-task
+    title: Install cowsay
+    status: locked

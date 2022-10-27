@@ -15,6 +15,21 @@
 {% endmacro %}
 
 {% macro TaskCard(idx, task) %}
+{% if task.status == "locked" %}
+<div class="card has-background-light">
+  <header class="card-header">
+    <p class="card-header-title">
+      <span class="task-number">{{ idx }}</span> {{ task.title }}
+    </p>
+
+    <button class="card-header-icon">
+      <span class="icon">
+        <i class="fas fa-lock"></i>
+      </span>
+    </button>
+  </header>
+</div>
+{% else %}
 <div class="card is-collapsible
 {{ 'is-active has-background-warning-light' if task.status == 'current' }}">
   <header class="card-header">
@@ -39,9 +54,7 @@
   <div class="card-content is-hidden-when-collapsed">
     <div class="content">
       <p>{{ task.description }} {# | markdown_to_html }} #}</p>
-
       <h4>Checks</h4>
-
       {% for check in task.checks %}
       {{ CheckStatus(check) }}
       {% endfor %}
@@ -49,6 +62,7 @@
   </div>
 
 </div>
+{% endif %}
 {% endmacro %}
 
 {% block navbar_menu_extra %}
