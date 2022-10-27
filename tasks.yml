@@ -3,6 +3,42 @@ subtitle: Learn to self-host
 config:
   base_url: "http://{name}.example.com"
 tasks:
+  - name: new-droplet
+    title: Create a new droplet with Ubuntu 22.04
+    description: |
+      Create a droplet from Digital Ocean and enter the IP address below attach it to your account.
+
+      TODO: add instructions
+    form:
+      description: |
+        Please enter the IP address of the droplet below to attach it to
+        your account.
+      inputs:
+        - name: ip
+          label: IP Address of the Droplet
+          type: ipaddr
+
+        # - name: test
+        #   label: Test
+        #   type: string
+        #   regex: [a-z0-9]+
+        #
+        # - name: count
+        #   label: Count
+        #   type: integer
+        #   min_value: 0
+        #   max_value: 10s
+
+    checks:
+      - check_host_ping: {}
+  - name: agent
+    title: Install self-hosting-agent
+    description: |
+      Install self-hosting agent using the instructions below.
+
+      TODO: add instructions
+    checks:
+      - check_agent_ready: {}
   - name: nginx
     title: Install nginx
     description: |
