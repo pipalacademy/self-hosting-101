@@ -25,19 +25,22 @@
         </p>
     </div> -->
     <div class="column">
-      <div class="card">
+      <div class="card is-collapsible">
         <header class="card-header">
           <p class="card-header-title">
             <span class="task-number">1</span> Create a Droplet &nbsp; <i class="fas fa-check-circle has-text-success-dark"></i>
           </p>
-          <button class="card-header-icon" aria-label="more options">
-            <span class="icon">
+          <button class="card-header-icon" data-toggle="collapse" aria-label="more options">
+            <span class="icon is-hidden-when-expanded">
               <i class="fas fa-angle-right" aria-hidden="true"></i>
+            </span>
+            <span class="icon is-hidden-when-collapsed">
+              <i class="fas fa-angle-down" aria-hidden="true"></i>
             </span>
           </button>
         </header>
 
-        <div class="card-content">
+        <div class="card-content is-hidden-when-collapsed">
           <div class="content">
             <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus nec iaculis mauris.
             </p>
