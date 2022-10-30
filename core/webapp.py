@@ -7,6 +7,7 @@ from flask import Flask, abort, g, jsonify, redirect, render_template, request, 
 from jinja2 import Markup
 
 from . import config
+from . import form
 from .auth import Github, login_user, logout_user, get_logged_in_user
 from .db import User
 
@@ -46,6 +47,7 @@ def update_context():
         "title": g.treadmill.title,
         "subtitle": g.treadmill.subtitle,
         "current_user": g.user,
+        "make_input_html": form.make_input_html,
     }
 
 

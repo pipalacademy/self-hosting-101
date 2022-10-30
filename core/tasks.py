@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import List, Optional
+
 import yaml
 
-from dataclasses import dataclass
-from typing import List
+from .form import Form, create_form
 
 
 @dataclass
@@ -65,6 +67,7 @@ class Task:
     title: str
     description: str
     checks: List[Validator]
+    form: Optional[Form] = None
 
 
 class TaskParser:
@@ -88,7 +91,14 @@ class TaskParser:
         title = data['title']
         description = data['description']
         checks = [self.parse_check(c) for c in data['checks']]
-        return Task(name, title, description, checks)
+        form = (form_data := data.get('form')) and create_form(form_data)
+        return Task(
+            name=name,
+            title=title,
+            description=description,
+            checks=checks,
+            form=form
+        )
 
     def parse_check(self, check_data):
         if isinstance(check_data, str):

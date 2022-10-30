@@ -1,185 +1,187 @@
+from __future__ import annotations
+
 import re
-from abc import ABC, abstractmethod
+from collections import UserDict
+from dataclasses import dataclass, field
 from textwrap import dedent
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 class ValidationError(Exception):
     pass
 
 
-class AbstractValidator(ABC):
-    """AbstractValidator is the base class for all validators.
+@dataclass
+class InputType:
+    name: str
+    html_type: str
+    templater: Templater
+    validators: List[Validator] = field(default_factory=list)
 
-    A class is an unitialized validator, an instance is an initialized
-    validator.
+    def register_validator(self, validator: Validator):
+        self.validators.append(validator)
 
-    Initialized validator is supposed to have consumed arguments that will be
-    used at validation-time. For example, a minimum-value validator will be
-    fed the minimum value at initialization-time, and will use it at
-    validation-time.
+    def __repr__(self):
+        return f"<InputType {self.name}>"
 
-    __init__ is called during initialization with params from the config.
-    __call__ is called during validation with the value that needs to be
-    validated.
+
+# types
+
+InputSpec = Dict[str, Union[str, int, bool]]
+Templater = Callable[[InputType, InputSpec], str]
+Validator = Callable[[InputSpec, Any], None]
+
+
+_input_types: Dict[str, InputType] = {}
+
+
+def default_templater(input_type: InputType, input_spec: InputSpec) -> str:
+    """Create html for a form input
     """
-    @abstractmethod
-    def __init__(self, params: Any):
-        pass
+    name = input_spec["name"]
+    label = input_spec["label"]
+    html_type = input_type.html_type
 
-    @abstractmethod
-    def __call__(self, value: Any) -> None:
-        """Should raise ValidationError with an error message is value is invalid
-        """
-        pass
-
-
-class FormInputType:
-    _validators: Optional[Dict[str, Type[AbstractValidator]]] = None
-
-    # Both should be set by the subclass
-    type_name: Optional[str] = None
-    html_type: Optional[str] = None
-
-    @property
-    @classmethod
-    def supported_validators(cls) -> Dict[str, Type[AbstractValidator]]:
-        """This is a class-property because the initialization of
-        cls._validators cannot be done directly as a list, as the pointer
-        value will be passed over to the subclasses, and they will all share
-        the same list.
-
-        This property initializes cls._validators if necessary, and returns
-        it.
-        """
-        if not cls._validators:
-            cls._validators = {}
-
-        return cls._validators
-
-    @classmethod
-    def validator(cls, name: str):
-        def decorator(validator: Type[AbstractValidator]):
-            cls.register_validator(name, validator)
-            return validator
-
-        return decorator
-
-    @classmethod
-    def register_validator(cls, name: str, validator: Type[AbstractValidator]):
-        cls.supported_validators[name] = validator
-
-    def __init__(self, name: str, label: str, options: Dict[str, Any]):
-        self.name = name
-        self.label = label
-        self.options = options
-        self.validators: List[AbstractValidator] = []
-
-        for (key, arg) in self.options.items():
-            if key not in self.supported_validators:
-                raise ValueError(f"Unknown validator {key}")
-
-            validator_cls = self.supported_validators[key]
-            self.validators.append(validator_cls(arg))
-
-    def make_html(self):
-        return dedent("""\
-            <label class="label" for="{self.name}">{self.label}</label>
-            <div class="control">
-                <input class="input" type="{self.html_type}" name="{self.name}" id="{self.name}">
-            </div>
-        """)
-
-    def validate(self, value):
-        for validator in self.validators:
-            validator(value)
+    return dedent(f"""\
+    <label class="label" for="{name}">{label}</label>
+    <div class="control">
+        <input class="input" type={html_type} name="{name}" id="{name}">
+    </div>
+    """)
 
 
-class FormInput:
-    def __init__(self, name: str, label: str, type: FormInputType, options: Dict[str, Any]):
-        self.name = name
-        self.label = label
-        self.type = type
-        self.options = options
+def register_input_type(
+        type_name: str,
+        html_type: str = "text",
+        templater: Optional[Templater] = None,
+):
+    templater = templater or default_templater
 
-    def make_html(self):
-        return self.type.make_html()
+    if type_name in _input_types:
+        raise ValueError(f"Type already registered: {type_name}")
+    _input_types[type_name] = InputType(
+        name=type_name,
+        html_type=html_type,
+        templater=templater,
+    )
 
-    def validate(self, value):
-        return self.type.validate(value)
+
+def register_validator(input_type: str):
+    """Usage:
+
+    ---
+    from core import form
+
+    @form.register_validator(input_type="ipaddr")
+    def validate_nonlocal(input_spec: InputSpec, value: str):
+        if not input_spec.get("nonlocal"):
+            return
+
+        if value.startswith("127."):
+            raise ValidationError("IP address cannot be local")
+    ---
+
+    """
+    if input_type not in _input_types:
+        raise ValueError(f"Unknown type: {input_type}")
+
+    def decorator(func: Callable):
+        _input_types[input_type].register_validator(func)
+        return func
+
+    return decorator
 
 
 class Form:
-    def __init__(self, description: str, inputs: List[FormInput]):
+
+    def __init__(self, description: str, inputs: List[InputSpec]):
         self.description = description
         self.inputs = inputs
 
-    def make_html(self):
-        return dedent("""\
-            <form name="{self.name}">
-                {inputs}
-            </form>
-        """)
+    def validate(self, values: Dict[str, str]):
+        for input_spec in self.inputs:
+            input_name, type_name = str(input_spec["name"]), str(input_spec["type"])
+            input_type = _input_types[type_name]
+            value = values[input_name]
 
-    def validate(self, values: Dict[str, Any]):
-        for input in self.inputs:
-            if input.name not in values:
-                raise ValidationError(f"Missing input {input.name}")
-
-            input.validate(values[input.name])
+            for validator in input_type.validators:
+                validator(input_spec, value)
 
 
-# form types
+def create_form(conf: Dict) -> Form:
+    """Create a form from a config dict
 
-class StringType(FormInputType):
-    type_name = "string"
-    html_type = "text"
+    Dict must be like:
+    Dict{
+        "description": Optional[str],
+        "inputs": List[
+            Dict{
+                "name": str,
+                "type": str,
+                "label": Optional[str],
+                **options: Dict[str, Any]
+            }
+        ]
+    }
+    """
+    description = conf.get("description", "")
+    inputs = conf["inputs"]
 
+    # TODO: maybe validate conf-dict with something like pydantic?
+    # TODO: validate for each input that its type is registered
 
-@StringType.validator("regex")
-class RegexValidator(AbstractValidator):
-    def __init__(self, params: str):
-        self.regex = params
-
-    def __call__(self, value: Any) -> None:
-        if not re.match(self.regex, value):
-            raise ValidationError(f"Regex didn't match: {self.regex}")
-
-
-class IntegerType(FormInputType):
-    type_name = "integer"
-    html_type = "number"
-
-
-@IntegerType.validator("min_value")
-class MinValueValidator(AbstractValidator):
-    def __init__(self, params: int):
-        # TODO: maybe should use some runtime type assertion?
-        self.min = int(params)
-
-    def __call__(self, value: Any) -> None:
-        if int(value) < self.min:
-            raise ValidationError(f"Value is too small: {value} < {self.min}")
+    return Form(description=description, inputs=inputs)
 
 
-@IntegerType.validator("max_value")
-class MaxValueValidator(AbstractValidator):
-    def __init__(self, params: int):
-        self.max = int(params)
-
-    def __call__(self, value: Any) -> None:
-        if int(value) > self.max:
-            raise ValidationError(f"Value is too large: {value} > {self.max}")
+def get_input_type(type_name: str) -> InputType:
+    if type_name not in _input_types:
+        raise ValueError(f"Unknown type: {type_name}")
+    return _input_types[type_name]
 
 
-class IPAddrType(FormInputType):
-    type_name = "ipaddr"
-    html_type = "text"
+def make_input_html(input_spec: InputSpec):
+    type_name = str(input_spec["type"])
+    input_type = get_input_type(type_name)
+    return input_type.templater(input_type, input_spec)
 
+
+register_input_type("string", html_type="text", templater=default_templater)
+register_input_type("integer", html_type="number", templater=default_templater)
+register_input_type("ipaddr", html_type="text", templater=default_templater)
+
+
+@register_validator(input_type="string")
+def regex_validator(input_spec: InputSpec, value: str):
+    regex = input_spec.get("regex")
+    if not regex:
+        return
+
+    if not re.match(str(regex), value):
+        raise ValidationError(f"Value does not match regex: {regex}")
+
+
+@register_validator(input_type="integer")
+def min_value_validator(input_spec: InputSpec, value: int):
+    min_value = input_spec.get("min_value")
+    if not min_value:
+        return
+
+    if value < int(min_value):
+        raise ValidationError(f"Value must be at least {min_value}")
+
+
+@register_validator(input_type="integer")
+def max_value_validator(input_spec: InputSpec, value: int):
+    max_value = input_spec.get("max_value")
+    if not max_value:
+        return
+
+    if value > int(max_value):
+        raise ValidationError(f"Value must be at most {max_value}")
+
+
+@register_validator(input_type="ipaddr")
+def validate_ipv4(input_spec: InputSpec, value: str):
     ipv4_regex = re.compile(r"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$")
-
-    def validate(self, value):
-        super().validate(value)
-
-        if not self.ipv4_regex.match(value):
-            raise ValidationError(f"Invalid IPv4 address: {value}")
+    if not ipv4_regex.match(value):
+        raise ValidationError("Value is not a valid IPv4 address")
