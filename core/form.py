@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import html
 import re
-from collections import UserDict
 from dataclasses import dataclass, field
 from textwrap import dedent
 from typing import Any, Callable, Dict, List, Optional, Union
+
+from .db import Site
 
 
 class ValidationError(Exception):
@@ -28,24 +30,32 @@ class InputType:
 # types
 
 InputSpec = Dict[str, Union[str, int, bool]]
-Templater = Callable[[InputType, InputSpec], str]
+UserInput = Dict[str, str]
+Templater = Callable[[InputType, InputSpec, str], str]
 Validator = Callable[[InputSpec, Any], None]
 
 
 _input_types: Dict[str, InputType] = {}
 
 
-def default_templater(input_type: InputType, input_spec: InputSpec) -> str:
+def default_templater(
+    input_type: InputType,
+    input_spec: InputSpec,
+    default_value: str,
+) -> str:
     """Create html for a form input
     """
     name = input_spec["name"]
     label = input_spec["label"]
     html_type = input_type.html_type
 
+    print("default Value: ", repr(default_value))
+
     return dedent(f"""\
     <label class="label" for="{name}">{label}</label>
     <div class="control">
-        <input class="input" type={html_type} name="{name}" id="{name}">
+        <input class="input" type={html_type} name="{name}" id="{name}"
+        value="{html.escape(default_value)}">
     </div>
     """)
 
@@ -92,13 +102,13 @@ def register_validator(input_type: str):
     return decorator
 
 
+@dataclass
 class Form:
+    name: str
+    description: str
+    inputs: List[InputSpec]
 
-    def __init__(self, description: str, inputs: List[InputSpec]):
-        self.description = description
-        self.inputs = inputs
-
-    def validate(self, values: Dict[str, str]):
+    def validate(self, values: UserInput):
         for input_spec in self.inputs:
             input_name, type_name = str(input_spec["name"]), str(input_spec["type"])
             input_type = _input_types[type_name]
@@ -107,8 +117,34 @@ class Form:
             for validator in input_type.validators:
                 validator(input_spec, value)
 
+    def _get_userdata_key(self, input_name: str):
+        return f"form.{self.name}.{input_name}"
 
-def create_form(conf: Dict) -> Form:
+    def save(self, site: Site, data: UserInput):
+        """Called when form is submitted
+        """
+        # NOTE: should we save all values as a single JSON userdata?
+        # That is an implementation detail and can be changed
+        # later on after some more thought.
+        for input_spec in self.inputs:
+            input_name = str(input_spec["name"])
+            if input_name in data:
+                db_key = self._get_userdata_key(input_name)
+                site.set_userdata(db_key, str(data[input_name]))
+
+    def get_current_values(self, site: Site):
+        """Get current values from the database
+        """
+        values = {}
+        for input_spec in self.inputs:
+            input_name = str(input_spec["name"])
+            db_key = self._get_userdata_key(input_name)
+            if (value := site.get_userdata(db_key)):
+                values[input_name] = value
+        return values
+
+
+def create_form(name: str, conf: Dict) -> Form:
     """Create a form from a config dict
 
     Dict must be like:
@@ -130,7 +166,7 @@ def create_form(conf: Dict) -> Form:
     # TODO: maybe validate conf-dict with something like pydantic?
     # TODO: validate for each input that its type is registered
 
-    return Form(description=description, inputs=inputs)
+    return Form(name=name, description=description, inputs=inputs)
 
 
 def get_input_type(type_name: str) -> InputType:
@@ -139,10 +175,10 @@ def get_input_type(type_name: str) -> InputType:
     return _input_types[type_name]
 
 
-def make_input_html(input_spec: InputSpec):
+def make_input_html(input_spec: InputSpec, default_value: str) -> str:
     type_name = str(input_spec["type"])
     input_type = get_input_type(type_name)
-    return input_type.templater(input_type, input_spec)
+    return input_type.templater(input_type, input_spec, default_value)
 
 
 register_input_type("string", html_type="text", templater=default_templater)

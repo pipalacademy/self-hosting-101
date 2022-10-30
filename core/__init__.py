@@ -66,6 +66,11 @@ class Treadmill:
 
         return self._tasks
 
+    def get_task(self, name):
+        for task in self.get_tasks():
+            if task.name == name:
+                return task
+
     def load_tasks(self):
         """Loads a list of tasks from a file.
         """

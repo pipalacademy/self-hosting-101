@@ -91,7 +91,7 @@ class TaskParser:
         title = data['title']
         description = data['description']
         checks = [self.parse_check(c) for c in data['checks']]
-        form = (form_data := data.get('form')) and create_form(form_data)
+        form = (form_data := data.get('form')) and create_form(name, form_data)
         return Task(
             name=name,
             title=title,

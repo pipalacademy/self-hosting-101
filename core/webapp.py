@@ -65,7 +65,7 @@ def leaderboard():
     return render_template("leaderboard.html", sites=sites)
 
 
-@app.route("/dashboard")
+@app.route("/dashboard", methods=["GET", "POST"])
 @auth_required
 def dashboard():
     """Renders dashboard (site page).
@@ -78,25 +78,42 @@ def dashboard():
     if not site:
         abort(404)
 
-    raw_tasks = g.treadmill.get_tasks()
-    tasks = []
+    if request.method == "POST":
+        task_name = request.form["task_name"]
+        task = g.treadmill.get_task(task_name)
+        if not task:
+            abort(400)
 
-    for raw_task in raw_tasks:
-        task = asdict(raw_task)
-        task_status = site.get_task_status(task["name"])
-        task["status"] = task_status.status if task_status else "locked"
-        task["checks"] = task_status.checks if task_status else []
+        if task.form:
+            task.form.validate(request.form)
+            task.form.save(site, request.form)
 
-        if task["name"] == site.current_task:
-            task["status"] = "current"
+        return redirect(url_for("dashboard"))
 
-        tasks.append(task)
+    else:
+        raw_tasks = g.treadmill.get_tasks()
+        tasks = []
 
-    return render_template(
-        "dashboard.html",
-        tasks=tasks,
-        progress=get_progress(tasks),
-    )
+        for raw_task in raw_tasks:
+            task = asdict(raw_task)
+            task_status = site.get_task_status(task["name"])
+            task["status"] = task_status.status if task_status else "locked"
+            task["checks"] = task_status.checks if task_status else []
+
+            form_values = raw_task.form and raw_task.form.get_current_values(site)
+            if form_values:
+                task["form"]["values"] = form_values
+
+            if task["name"] == site.current_task:
+                task["status"] = "current"
+
+            tasks.append(task)
+
+        return render_template(
+            "dashboard.html",
+            tasks=tasks,
+            progress=get_progress(tasks),
+        )
 
 
 @app.route("/site/<name>/refresh", methods=["POST"])
