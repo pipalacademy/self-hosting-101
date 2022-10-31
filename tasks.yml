@@ -1,7 +1,8 @@
 title: Self Hosting 101
 subtitle: Learn to self-host
 config:
-  base_url: "http://{name}.example.com"
+  base_domain: "k8x.in"
+  base_url: "http://{name}.k8x.in"
 tasks:
   - name: new-droplet
     title: Create a new droplet with Ubuntu 22.04
@@ -9,6 +10,7 @@ tasks:
       Create a droplet from Digital Ocean and enter the IP address below attach it to your account.
 
       TODO: add instructions
+    checks: []
     form:
       description: |
         Please enter the IP address of the droplet below to attach it to
@@ -17,28 +19,33 @@ tasks:
         - name: ip
           label: IP Address of the Droplet
           type: ipaddr
+        - name: test
+          label: Test
+          type: string
+          regex: "[a-z0-9]+"
+          not_null: true
+          min_length: 10
+          max_length: 20
+    actions:
+      - add_dns_entry
 
-        # - name: test
-        #   label: Test
-        #   type: string
-        #   regex: [a-z0-9]+
-        #
         # - name: count
         #   label: Count
         #   type: integer
         #   min_value: 0
         #   max_value: 10s
 
-    checks:
-      - check_host_ping: {}
+            #     checks:
+            #       - check_host_ping: {}
   - name: agent
     title: Install self-hosting-agent
     description: |
       Install self-hosting agent using the instructions below.
-
+ 
       TODO: add instructions
     checks:
-      - check_agent_ready: {}
+      - check_package_exists:
+          package: self-hosting-agent
   - name: nginx
     title: Install nginx
     description: |
@@ -46,10 +53,10 @@ tasks:
     checks:
       - check_package_exists:
           package: nginx
-  - name: non-root-user
-    title: Create a non-root user
-    description: |
-      Create a non-root user with username dev
-    checks:
-      - check_user_exists:
-          user: dev
+            #   - name: non-root-user
+            #     title: Create a non-root user
+            #     description: |
+            #       Create a non-root user with username dev
+            #     checks:
+            #       - check_user_exists:
+            #           user: dev

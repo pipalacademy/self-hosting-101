@@ -1,8 +1,11 @@
+import os
+
+import digitalocean
 import requests
 
-from core.webapp import app
 from core import Treadmill, ValidationError, Validator
-
+from core.tasks import register_action
+from core.webapp import app
 
 tm = Treadmill(app, "tasks.yml")
 
@@ -71,6 +74,31 @@ class check_user_exists(Validator):
         users = r.json()["data"]["users"]
         if self.user not in users:
             raise ValidationError(f"User {self.user} does not exist")
+
+
+@register_action
+def add_dns_entry(site, task):
+    print("action add_dns_entry", site.name, task.name)
+
+    form_values = task.form.get_current_values(site)
+    ip_address = form_values["ip"]
+
+    token = os.environ["DIGITALOCEAN_TOKEN"]
+    base_domain = tm.config["base_domain"]
+
+    domain = digitalocean.Domain(token=token, name=base_domain)
+    for record in domain.get_records():
+        if record.name == site.name:
+            record.data = ip_address
+            record.save()
+            break
+    else:
+        domain.create_new_domain_record(
+            type="A",
+            name=site.name,
+            data=ip_address,
+            ttl="120"  # 2 mins, for easy debugging
+        )
 
 
 def main():

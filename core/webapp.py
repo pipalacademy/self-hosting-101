@@ -10,6 +10,7 @@ from . import config
 from . import form
 from .auth import Github, login_user, logout_user, get_logged_in_user
 from .db import User
+from .tasks import TaskStatus
 
 
 app = Flask(__name__)
@@ -87,6 +88,11 @@ def dashboard():
         if task.form:
             task.form.validate(request.form)
             task.form.save(site, request.form)
+
+        status = g.treadmill.get_status(site)
+        site.update_status(status)
+        if status["tasks"][task.name]["status"] == TaskStatus.PASS:
+            task.run_actions(site)
 
         return redirect(url_for("dashboard"))
 
@@ -179,5 +185,5 @@ def logout():
 
 
 def get_progress(tasks):
-    passed_tasks = sum(1 for task in tasks if task["status"] == "pass")
+    passed_tasks = sum(1 for task in tasks if task["status"] == TaskStatus.PASS)
     return round(passed_tasks * 100 / len(tasks))

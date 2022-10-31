@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Callable, Dict, List, Optional
 
 import yaml
 
+from .db import Site
 from .form import Form, create_form
+
+
+Action = Callable[[Site, "Task"], None]
 
 
 @dataclass
@@ -68,6 +72,11 @@ class Task:
     description: str
     checks: List[Validator]
     form: Optional[Form] = None
+    actions: Optional[List[Action]] = None
+
+    def run_actions(self, site):
+        for action in self.actions:
+            action(site, self)
 
 
 class TaskParser:
@@ -92,12 +101,14 @@ class TaskParser:
         description = data['description']
         checks = [self.parse_check(c) for c in data['checks']]
         form = (form_data := data.get('form')) and create_form(name, form_data)
+        actions = [get_action(action_name) for action_name in data.get('actions', [])]
         return Task(
             name=name,
             title=title,
             description=description,
             checks=checks,
-            form=form
+            form=form,
+            actions=actions,
         )
 
     def parse_check(self, check_data):
@@ -109,3 +120,21 @@ class TaskParser:
             return cls(**args)
         else:
             raise ValueError(f"Invalid check: {check_data}")
+
+
+_actions: Dict[str, Action] = {}
+
+
+def register_action(func: Action):
+    """Register an action function
+    """
+    if func.__name__ in _actions:
+        raise ValueError(f"Action {func.__name__} already registered")
+    _actions[func.__name__] = func
+    return func
+
+
+def get_action(name: str) -> Action:
+    """Get an action function
+    """
+    return _actions[name]
