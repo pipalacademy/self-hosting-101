@@ -69,3 +69,7 @@ div.is-check pre {
 .is-collapsible.is-active .is-hidden-when-expanded {
     display: none;
 }
+
+.column {
+    max-width: 100%;
+}
