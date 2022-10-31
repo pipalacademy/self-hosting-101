@@ -49,13 +49,11 @@ def default_templater(
     label = input_spec["label"]
     html_type = input_type.html_type
 
-    print("default Value: ", repr(default_value))
-
     return dedent(f"""\
     <label class="label" for="{name}">{label}</label>
     <div class="control">
         <input class="input" type={html_type} name="{name}" id="{name}"
-        value="{html.escape(default_value)}">
+        value="{html.escape(default_value)}" required>
     </div>
     """)
 
