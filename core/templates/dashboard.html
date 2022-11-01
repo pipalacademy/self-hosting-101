@@ -71,10 +71,12 @@
         </div>
       </form>
       {% endif %}
+      {% if task.checks %}
       <h4>Checks</h4>
       {% for check in task.checks %}
       {{ CheckStatus(check) }}
       {% endfor %}
+      {% endif %}
     </div>
   </div>
 
