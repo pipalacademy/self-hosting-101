@@ -3,7 +3,7 @@ from dataclasses import asdict
 
 import markdown
 import web
-from flask import Flask, abort, g, jsonify, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, g, jsonify, redirect, render_template, request, url_for
 from jinja2 import Markup
 
 from . import config
@@ -86,7 +86,11 @@ def dashboard():
             abort(400)
 
         if task.form:
-            task.form.validate(request.form)
+            try:
+                task.form.validate(request.form)
+            except form.ValidationError as e:
+                flash(str(e), "error")
+                return redirect(url_for("dashboard"))
             task.form.save(site, request.form)
 
         status = g.treadmill.get_status(site)
@@ -159,6 +163,7 @@ def github_callback():
 
     g.treadmill.get_site(user.username) or g.treadmill.new_site(user.username)
 
+    flash(f"Welcome to Self Hosting 101, {user.username}", "info")
     return redirect(url_for("index"))
 
 
